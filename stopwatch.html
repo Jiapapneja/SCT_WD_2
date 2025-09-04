@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stopwatch</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      flex-direction: column;
+    }
+
+    .circle-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+    }
+
+    svg {
+      transform: rotate(-90deg); /* Start from top */
+      width: 100%;
+      height: 100%;
+    }
+
+    .background {
+      stroke: #222;
+      stroke-width: 12;
+      fill: none;
+    }
+
+    .progress {
+      stroke: url(#gradient);
+      stroke-width: 12;
+      stroke-linecap: round;
+      fill: none;
+      stroke-dasharray: 905; /* 2πr (2*3.14*144) */
+      stroke-dashoffset: 905;
+      transition: stroke-dashoffset 0.05s linear;
+    }
+
+    .time-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #fff;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+
+    .start { background: #28a745; }
+    .pause { background: #f0ad4e; }
+    .stop { background: #6f42c1; }
+    .reset { background: #ff4500; }
+    .lap { background: #007bff; }
+    .clear { 
+      background: #dc3545; 
+      border-radius: 12px; 
+      width: auto;        /* ✅ fixed */
+      margin-top: 10px; 
+      display: block; 
+      margin-left: auto;  /* ✅ center align */
+      margin-right: auto; 
+      padding: 10px 22px; 
+    }
+
+    #laps {
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 220px;
+      text-align: left;
+    }
+
+    .lap-item {
+      padding: 5px;
+      border-bottom: 1px solid #444;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="circle-container">
+    <svg>
+      <defs>
+        <linearGradient id="gradient" x1="1" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ff0000"/>
+          <stop offset="25%" stop-color="#ffff00"/>
+          <stop offset="50%" stop-color="#00ff00"/>
+          <stop offset="75%" stop-color="#00ffff"/>
+          <stop offset="100%" stop-color="#0000ff"/>
+        </linearGradient>
+      </defs>
+      <!-- Background & Progress Circle -->
+      <circle class="background" cx="150" cy="150" r="144"/>
+      <circle class="progress" cx="150" cy="150" r="144"/>
+    </svg>
+    <div class="time-display" id="display">00:00:00:000</div>
+  </div>
+
+  <div class="buttons">
+    <button class="start" onclick="start()">▶ Start</button>
+    <button class="pause" onclick="pause()">⏸ Pause</button>
+    <button class="stop" onclick="stop()">⏹ Stop</button>
+    <button class="reset" onclick="reset()">⟳ Reset</button>
+    <button class="lap" onclick="lap()">Lap</button>
+  </div>
+  <button class="clear" onclick="clearLaps()">Clear All</button>
+
+  <div id="laps"></div>
+
+  <script>
+    let startTime, updatedTime, difference = 0, timerInterval;
+    let running = false;
+    const display = document.getElementById("display");
+    const progress = document.querySelector(".progress");
+    const circumference = 2 * Math.PI * 144; // radius = 144
+
+    function formatTime(ms) {
+      let milliseconds = parseInt(ms % 1000);
+      let seconds = Math.floor((ms / 1000) % 60);
+      let minutes = Math.floor((ms / (1000 * 60)) % 60);
+      let hours = Math.floor(ms / (1000 * 60 * 60));
+
+      return (
+        (hours < 10 ? "0" + hours : hours) + ":" +
+        (minutes < 10 ? "0" + minutes : minutes) + ":" +
+        (seconds < 10 ? "0" + seconds : seconds) + ":" +
+        (milliseconds < 100 ? (milliseconds < 10 ? "00" : "0") : "") + milliseconds
+      );
+    }
+
+    function start() {
+      if (!running) {
+        startTime = new Date().getTime() - difference;
+        timerInterval = setInterval(runTimer, 10);
+        running = true;
+      }
+    }
+
+    function runTimer() {
+      updatedTime = new Date().getTime() - startTime;
+      display.innerHTML = formatTime(updatedTime);
+
+      let progressValue = (updatedTime % 60000) / 60000; // 1 full circle = 1 min
+      progress.style.strokeDashoffset = circumference - (progressValue * circumference);
+    }
+
+    function pause() {
+      clearInterval(timerInterval);
+      running = false;
+      difference = updatedTime;
+    }
+
+    function stop() {
+      clearInterval(timerInterval);
+      running = false;
+      difference = 0;
+      display.innerHTML = "00:00:00:000";
+      progress.style.strokeDashoffset = circumference;
+    }
+
+    function reset() {
+      clearInterval(timerInterval);
+      running = false;
+      difference = 0;
+      display.innerHTML = "00:00:00:000";
+      progress.style.strokeDashoffset = circumference;
+    }
+
+    function lap() {
+      if (running) {
+        const lapTime = document.createElement("div");
+        lapTime.className = "lap-item";
+        lapTime.innerText = "Lap: " + formatTime(updatedTime);
+        document.getElementById("laps").appendChild(lapTime);
+      }
+    }
+
+    function clearLaps() {
+      document.getElementById("laps").innerHTML = "";
+    }
+  </script>
+</body>
+</html>
