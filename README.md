@@ -21,4 +21,4 @@ It includes a circular progress ring, lap functionality, and essential stopwatch
 
 1. Clone this repository:
    ```bash
-   git clone 
+   git clone https://github.com/Jiapapneja/SCT_WD_2.git
